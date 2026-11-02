@@ -1,2 +1,4 @@
 .DS_Store
-compte_rnendu/build
+compte_rendu/build
+build/
+results/
