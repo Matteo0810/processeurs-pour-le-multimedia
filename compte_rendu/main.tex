@@ -1,0 +1,133 @@
+
+\documentclass[11pt,a4paper]{article}
+
+% -----------------------------------------------
+% Packages
+% -----------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+
+\usepackage{geometry}
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{float}
+
+% -----------------------------------------------
+% Colors
+% -----------------------------------------------
+
+\definecolor{primary}{HTML}{2563EB}
+\definecolor{dark}{HTML}{1E293B}
+\definecolor{gray}{HTML}{64748B}
+
+% -----------------------------------------------
+% Hyperlinks
+% -----------------------------------------------
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+    citecolor=primary
+}
+
+% -----------------------------------------------
+% Formatting
+% -----------------------------------------------
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+
+\titleformat{\section}
+    {\Large\bfseries\color{dark}}
+    {\thesection.}{0.5em}{}
+
+\titleformat{\subsection}
+    {\large\bfseries\color{primary}}
+    {\thesubsection}{0.5em}{}
+
+% -----------------------------------------------
+% Header / Footer
+% -----------------------------------------------
+
+\pagestyle{fancy}
+\fancyhf{}
+
+\lhead{\textcolor{gray}{\documenttitle}}
+\rhead{\textcolor{gray}{\documentauthor}}
+
+\cfoot{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+% -----------------------------------------------
+% Document information
+% -----------------------------------------------
+
+\newcommand{\documenttitle}{Titre du document}
+\newcommand{\documentauthor}{Mattéo Gaillard}
+\newcommand{\documentdate}{\today}
+\newcommand{\documentversion}{1.0}
+
+% -----------------------------------------------
+% Document
+% -----------------------------------------------
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+
+    \vspace*{3cm}
+
+    {\Large\textcolor{primary}{ORGANISATION / ENTREPRISE}}
+
+    \vspace{2cm}
+
+    {\Huge\bfseries\color{dark}\documenttitle}
+
+    \vspace{0.5cm}
+
+    {\Large\textcolor{gray}{Sous-titre du document}}
+
+    \vspace{2cm}
+
+    \rule{0.7\textwidth}{0.5pt}
+
+    \vspace{1cm}
+
+    \begin{tabular}{rl}
+        \textbf{Auteur :} & \documentauthor \\
+        \textbf{Version :} & \documentversion \\
+        \textbf{Date :} & \documentdate \\
+    \end{tabular}
+
+    \vfill
+
+    {\small\textcolor{gray}{Document confidentiel — Tous droits réservés}}
+
+\end{titlepage}
+
+% Table of contents
+\tableofcontents
+\newpage
+
+
+
+\end{document}
