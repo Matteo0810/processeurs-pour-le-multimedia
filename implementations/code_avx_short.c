@@ -153,16 +153,17 @@ static inline __m256 charger_pixels(const uint16_t *pixels) {
 }
 
 void etalement_lineaire(ImagePGM in, ImagePGM out) {
-    __m256 min_avx = _mm256_set1_ps(MAX_VALEUR);
-    __m256 max_avx = _mm256_setzero_ps();
+    __m128i min_pixels = _mm_set1_epi16(MAX_VALEUR);
+    __m128i max_pixels = _mm_setzero_si128();
     int min = MAX_VALEUR, max = 0;
     const int fin_avx = in.width - in.width % 8;
 
     for (int i = 0; i < in.height; i++) {
         for (int j = 0; j < fin_avx; j += 8) {
-            __m256 pixels = charger_pixels(&in.data[i][j]);
-            min_avx = _mm256_min_ps(min_avx, pixels);
-            max_avx = _mm256_max_ps(max_avx, pixels);
+            // Comparer les huit pixels comme des entiers 16 bits non signés.
+            __m128i pixels = _mm_loadu_si128((const __m128i *)&in.data[i][j]);
+            min_pixels = _mm_min_epu16(min_pixels, pixels);
+            max_pixels = _mm_max_epu16(max_pixels, pixels);
         }
 
         // La fin de chaque ligne peut contenir moins de huit pixels.
@@ -172,12 +173,13 @@ void etalement_lineaire(ImagePGM in, ImagePGM out) {
         }
     }
 
-    float mins[8], maxs[8];
-    _mm256_storeu_ps(mins, min_avx);
-    _mm256_storeu_ps(maxs, max_avx);
+    // Regrouper les huit minimums et maximums avec les fins de ligne.
+    uint16_t mins[8], maxs[8];
+    _mm_storeu_si128((__m128i *)mins, min_pixels);
+    _mm_storeu_si128((__m128i *)maxs, max_pixels);
     for (int k = 0; k < 8; k++) {
-        min = MIN(min, (int)mins[k]);
-        max = MAX(max, (int)maxs[k]);
+        min = MIN(min, mins[k]);
+        max = MAX(max, maxs[k]);
     }
 
     // Si l'image est uniforme (0 à 255), la sortie reste à zéro (calloc).
