@@ -12,7 +12,9 @@ L'objectif est de mesurer les performances des différentes implémentations, en
 projet/
 ├── implementations/
 │   ├── code_sequentiel.c
-│   └── code_avx.c
+│   ├── code_avx_short.c
+│   ├── code_avx_char.c
+│   └── code_avx_int.c
 ├── scripts/
 │   ├── benchmark.py
 │   └── global_bencharmking.py
@@ -68,11 +70,17 @@ Les exécutables sont générés dans le dossier `build/`.
 
 La version AVX traite huit pixels à la fois et nécessite un processeur x86
 avec AVX. Le Makefile ajoute automatiquement l'option `-mavx` pour cette version.
+La version `code_avx_short.c` stocke les pixels sur 16 bits et
+`code_avx_int.c` conserve la représentation en `int`.
+
+`code_avx_char.c` stocke chaque pixel sur un octet (`uint8_t`). Cette variante
+accepte les fichiers PGM ASCII (P2) dont le maximum déclaré est compris entre 1
+et 255. Elle écrit une image étalée sur une échelle de 0 à 255.
 
 ```bash
-make SRC=implementations/code_avx.c
-make run SRC=implementations/code_avx.c IMAGE=img/image1.pgm
-python3 scripts/global_benchmarking.py -c code_sequentiel code_avx
+make SRC=implementations/code_avx_short.c
+make run SRC=implementations/code_avx_short.c IMAGE=img/image1.pgm
+python3 scripts/global_benchmarking.py img/image1.pgm -c code_sequentiel code_avx_int code_avx_short code_avx_char
 ```
 
 ### Exécuter une implémentation
@@ -189,10 +197,13 @@ results/
 └── comparaison/
     ├── benchmark_comparatif.png
     ├── results.csv
+    ├── summary.csv
     └── system.txt
 ```
 
 Le graphique comparatif affiche les mesures individuelles de chaque implémentation avec une couleur distincte.
+Sa légende, le terminal et `summary.csv` affichent la moyenne de toutes
+les mesures sélectionnées pour chaque implémentation.
 
 Le fichier CSV contient les colonnes suivantes :
 

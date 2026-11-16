@@ -6,6 +6,7 @@
 /*==============================================================================*/
 
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 
 
 /*==============================================================================*/
-/* Macro utiles pour la mesure du temps
+/* Macros utiles pour la mesure du temps                                        */
 /*==============================================================================*/
 
 #define InitClock    struct timespec start, stop
@@ -45,17 +46,17 @@ typedef struct {
     int width;
     int height;
     int maxval;
-    int **data;
+    uint16_t **data;
 } ImagePGM;
 
 /*==============================================================================*/
 /* Allocation et libération d'image                                             */
 /*==============================================================================*/
-int **alloc_image(int height, int width) {
-    int **img = malloc(height * sizeof(int *));
+uint16_t **alloc_image(int height, int width) {
+    uint16_t **img = malloc(height * sizeof(*img));
     CHECK_ALLOC(img);
     for (int i = 0; i < height; i++) {
-        img[i] = calloc(width, sizeof(int));
+        img[i] = calloc(width, sizeof(*img[i]));
         CHECK_ALLOC(img[i]);
     }
     return img;
@@ -102,7 +103,7 @@ ImagePGM read_pgm(const char *filename) {
 
     for (int i = 0; i < img.height; i++)
         for (int j = 0; j < img.width; j++)
-            fscanf(f, "%d", &img.data[i][j]);
+            fscanf(f, "%" SCNu16, &img.data[i][j]);
 
     fclose(f);
     return img;
@@ -125,7 +126,7 @@ void write_pgm(const char *filename, ImagePGM img) {
     int n = 0;
     for (int i = 0; i < img.height; i++) {
         for (int j = 0; j < img.width; j++) {
-            fprintf(f, "%3d ", img.data[i][j]);
+            fprintf(f, "%3" PRIu16 " ", img.data[i][j]);
             n++;
             if (n == NBPOINTSPARLIGNES) {
                 n = 0;
@@ -147,6 +148,10 @@ void etalement_lineaire(ImagePGM in, ImagePGM out) {
             min = MIN(min, in.data[i][j]);
             max = MAX(max, in.data[i][j]);
         }
+
+    // La sortie allouée par calloc reste noire si max == min.
+    if (max == min)
+        return;
 
     float facteur = (float)(MAX_VALEUR) / (float)(max - min);
 

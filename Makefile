@@ -5,7 +5,7 @@ CPPFLAGS += -D_POSIX_C_SOURCE=200809L
 SRC ?= implementations/code_sequentiel.c
 TARGET = build/$(basename $(notdir $(SRC)))
 
-ifeq ($(notdir $(SRC)),code_avx.c)
+ifneq ($(filter code_avx_short.c code_avx_char.c code_avx_int.c,$(notdir $(SRC))),)
 SIMD_FLAGS = -mavx
 endif
 

@@ -1,5 +1,7 @@
 
 import argparse
+import csv
+from statistics import mean
 import subprocess
 import re
 import platform
@@ -106,7 +108,7 @@ if platform.system() == "Darwin":
     ram = subprocess.getoutput(
         "sysctl -n hw.memsize"
     )
-    ram = f"{int(ram) / (1024 ** 3):.2f} Go"
+    ram = f"{int(ram) / (1024 ** 3):.2f} Go" if ram.isdecimal() else "Non disponible"
 
 elif platform.system() == "Linux":
     cpu = subprocess.getoutput(
@@ -165,9 +167,13 @@ for source in implementations:
             process = subprocess.run(
                 [str(executable), str(image)],
                 capture_output=True,
-                text=True,
-                check=True
+                text=True
             )
+            if process.returncode:
+                raise SystemExit(
+                    f"{program} a échoué sur {image.name} : "
+                    f"{process.stderr.strip() or process.returncode}"
+                )
 
             match = re.search(
                 r"Temps de calcul\s*:?\s*([\d.,]+)\s*s",
@@ -209,6 +215,11 @@ output.mkdir(parents=True, exist_ok=True)
 
 
 
+averages = {
+    program: mean(measurement["time"] for measurement in measurements)
+    for program, measurements in results.items()
+}
+
 plt.figure(figsize=(14, 8))
 
 colors = plt.get_cmap("tab20").colors
@@ -232,7 +243,7 @@ for index, (program, measurements) in enumerate(results.items()):
         linewidth=1,
         marker="o",
         markersize=4,
-        label=program
+        label=f"{program} (moyenne : {averages[program]:.6f} ms)"
     )
 
 plt.xlabel("Numéro de l'occurrence")
@@ -268,9 +279,16 @@ with open(
                 f"{program},"
                 f"{occurrence},"
                 f"{measurement['image']},"
-                f"{measurement['time']:.3f}\n"
+                f"{measurement['time']:.6f}\n"
             )
 
+
+
+with (output / "summary.csv").open("w", encoding="utf-8", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["implementation", "executions", "mean_time_ms"])
+    for program, average in averages.items():
+        writer.writerow([program, len(results[program]), f"{average:.6f}"])
 
 
 gcc = subprocess.getoutput(
@@ -305,4 +323,6 @@ print("\n=== Benchmark terminé ===")
 print(f"Implémentations testées : {len(implementations)}")
 print(f"Images utilisées : {len(images)}")
 print(f"Nombre total d'exécutions : {total_runs}")
+for program, average in averages.items():
+    print(f"{program} : {average:.6f} ms en moyenne")
 print(f"Résultats enregistrés dans : {output}")
