@@ -9,7 +9,6 @@
 #include <immintrin.h>
 #include <ctype.h>
 #include <limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -192,35 +191,36 @@ static inline __m256 charger_pixels(const uint8_t *pixels) {
     // Élargir les deux moitiés à 32 bits sans extension de signe.
     __m128 bas = _mm_cvtepi32_ps(_mm_unpacklo_epi16(valeurs, zeros));
     __m128 haut = _mm_cvtepi32_ps(_mm_unpackhi_epi16(valeurs, zeros));
-    return _mm256_insertf128_ps(_mm256_castps128_ps256(bas), haut, 1);
+    return _mm256_set_m128(haut, bas);
 }
 
 void etalement_lineaire(ImagePGM in, ImagePGM out) {
-    __m256 min_avx = _mm256_set1_ps(MAX_VALEUR);
-    __m256 max_avx = _mm256_setzero_ps();
+    __m128i min_octets = _mm_set1_epi32(-1); // 0xFF dans chaque octet.
+    __m128i max_octets = _mm_setzero_si128();
     int min = MAX_VALEUR, max = 0;
+    const int fin_minmax = in.width - in.width % 16;
     const int fin_avx = in.width - in.width % 8;
 
     for (int i = 0; i < in.height; i++) {
-        for (int j = 0; j < fin_avx; j += 8) {
-            __m256 pixels = charger_pixels(&in.data[i][j]);
-            min_avx = _mm256_min_ps(min_avx, pixels);
-            max_avx = _mm256_max_ps(max_avx, pixels);
+        // Comparer directement 16 pixels non signés, sans conversion en flottants.
+        for (int j = 0; j < fin_minmax; j += 16) {
+            __m128i pixels = _mm_loadu_si128((const __m128i *)&in.data[i][j]);
+            min_octets = _mm_min_epu8(min_octets, pixels);
+            max_octets = _mm_max_epu8(max_octets, pixels);
         }
 
-        // La fin de chaque ligne peut contenir moins de huit pixels.
-        for (int j = fin_avx; j < in.width; j++) {
+        for (int j = fin_minmax; j < in.width; j++) {
             min = MIN(min, in.data[i][j]);
             max = MAX(max, in.data[i][j]);
         }
     }
 
-    float mins[8], maxs[8];
-    _mm256_storeu_ps(mins, min_avx);
-    _mm256_storeu_ps(maxs, max_avx);
-    for (int k = 0; k < 8; k++) {
-        min = MIN(min, (int)mins[k]);
-        max = MAX(max, (int)maxs[k]);
+    uint8_t mins[16], maxs[16];
+    _mm_storeu_si128((__m128i *)mins, min_octets);
+    _mm_storeu_si128((__m128i *)maxs, max_octets);
+    for (int k = 0; k < 16; k++) {
+        min = MIN(min, mins[k]);
+        max = MAX(max, maxs[k]);
     }
 
     // Si l'image est uniforme (0 à 255), la sortie reste à zéro (calloc).
@@ -238,8 +238,9 @@ void etalement_lineaire(ImagePGM in, ImagePGM out) {
             // Tronquer vers zéro, comme le cast (int) de la version séquentielle.
             __m256i entiers = _mm256_cvttps_epi32(etales);
             // Les résultats sont dans [0, 255] et tiennent dans un entier 16 bits signé.
-            __m128i pixels_16 = _mm_packs_epi32(_mm256_castsi256_si128(entiers),
-                                              _mm256_extractf128_si256(entiers, 1));
+            __m128i moities[2];
+            _mm256_storeu_si256((__m256i *)moities, entiers);
+            __m128i pixels_16 = _mm_packs_epi32(moities[0], moities[1]);
             __m128i pixels_8 = _mm_packus_epi16(pixels_16, _mm_setzero_si128());
             _mm_storel_epi64((__m128i *)&out.data[i][j], pixels_8);
         }

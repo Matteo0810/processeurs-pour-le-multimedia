@@ -250,7 +250,7 @@ plt.xlabel("Numéro de l'occurrence")
 plt.ylabel("Temps d'exécution (ms)")
 
 plt.title(
-    f"Benchmark comparatif - {total_runs} exécutions\n"
+    f"Benchmark comparatif - {args.iterations} répétitions par image et par implémentation\n"
     f"CPU : {cpu} | OS : {os_name}"
 )
 

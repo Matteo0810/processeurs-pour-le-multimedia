@@ -149,7 +149,7 @@ static inline __m256 charger_pixels(const uint16_t *pixels) {
     // Élargir les deux moitiés à 32 bits sans extension de signe.
     __m128 bas = _mm_cvtepi32_ps(_mm_unpacklo_epi16(valeurs, zeros));
     __m128 haut = _mm_cvtepi32_ps(_mm_unpackhi_epi16(valeurs, zeros));
-    return _mm256_insertf128_ps(_mm256_castps128_ps256(bas), haut, 1);
+    return _mm256_set_m128(haut, bas);
 }
 
 void etalement_lineaire(ImagePGM in, ImagePGM out) {
@@ -195,8 +195,9 @@ void etalement_lineaire(ImagePGM in, ImagePGM out) {
             // Tronquer vers zéro, comme le cast (int) de la version séquentielle.
             __m256i entiers = _mm256_cvttps_epi32(etales);
             // Les résultats sont dans [0, 255] et tiennent dans un entier 16 bits signé.
-            __m128i pixels_16 = _mm_packs_epi32(_mm256_castsi256_si128(entiers),
-                                              _mm256_extractf128_si256(entiers, 1));
+            __m128i moities[2];
+            _mm256_storeu_si256((__m256i *)moities, entiers);
+            __m128i pixels_16 = _mm_packs_epi32(moities[0], moities[1]);
             _mm_storeu_si128((__m128i *)&out.data[i][j], pixels_16);
         }
 
