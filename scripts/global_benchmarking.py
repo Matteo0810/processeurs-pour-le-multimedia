@@ -3,21 +3,20 @@ import argparse
 import subprocess
 import re
 import platform
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 
 
-# Configuration
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 IMPLEMENTATIONS_DIR = PROJECT_DIR / "implementations"
 IMAGES_DIR = PROJECT_DIR / "img"
 BUILD_DIR = PROJECT_DIR / "build"
 
 
-# Arguments
 parser = argparse.ArgumentParser(
-    description="Benchmark comparatif de toutes les implémentations C."
+    description="Benchmark comparatif des implémentations C."
 )
 
 parser.add_argument(
@@ -39,22 +38,46 @@ parser.add_argument(
     help="Dossier de sortie des résultats."
 )
 
+parser.add_argument(
+    "-c", "--compare",
+    nargs="+",
+    help="Implémentations à comparer (noms des fichiers sans .c)."
+)
+
 args = parser.parse_args()
 
 if args.iterations < 1:
     parser.error("Le nombre d'itérations doit être supérieur à 0.")
 
 
-# Détection des implémentations
-implementations = sorted(IMPLEMENTATIONS_DIR.glob("*.c"))
 
-if not implementations:
+all_implementations = sorted(IMPLEMENTATIONS_DIR.glob("*.c"))
+
+if not all_implementations:
     raise RuntimeError(
         f"Aucun fichier C trouvé dans {IMPLEMENTATIONS_DIR}"
     )
 
+if args.compare:
+    requested = set(args.compare)
 
-# Détection des images
+    implementations = [
+        source
+        for source in all_implementations
+        if source.stem in requested
+    ]
+
+    missing = requested - {source.stem for source in implementations}
+
+    if missing:
+        raise ValueError(
+            f"Implémentations introuvables : {', '.join(sorted(missing))}"
+        )
+else:
+    implementations = all_implementations
+
+
+
 if args.images:
     images = [Path(image).resolve() for image in args.images]
 else:
@@ -68,16 +91,18 @@ for image in images:
         raise FileNotFoundError(f"Image introuvable : {image}")
 
 
-# Informations système
+
 cpu = platform.processor()
 
 if platform.system() == "Darwin":
     cpu = subprocess.getoutput(
         "sysctl -n machdep.cpu.brand_string"
     )
+
     cores = subprocess.getoutput(
         "sysctl -n hw.physicalcpu"
     )
+
     ram = subprocess.getoutput(
         "sysctl -n hw.memsize"
     )
@@ -103,7 +128,7 @@ else:
 os_name = f"{platform.system()} {platform.release()}"
 
 
-# Préparation des résultats
+
 results = {
     source.stem: []
     for source in implementations
@@ -113,14 +138,14 @@ total_runs = len(implementations) * len(images) * args.iterations
 current_run = 0
 
 
-# Benchmark
+
 for source in implementations:
     program = source.stem
     executable = BUILD_DIR / program
 
     print(f"\n=== {program} ===")
 
-    # Compilation
+    
     subprocess.run(
         [
             "make",
@@ -130,7 +155,7 @@ for source in implementations:
         check=True
     )
 
-    # Exécution sur chaque image
+    
     for image in images:
         print(f"\nImage : {image.name}")
 
@@ -145,7 +170,7 @@ for source in implementations:
             )
 
             match = re.search(
-                r"Temps de calcul\s+([\d.,]+)\s*s",
+                r"Temps de calcul\s*:?\s*([\d.,]+)\s*s",
                 process.stdout
             )
 
@@ -155,7 +180,7 @@ for source in implementations:
                     f"sur {image.name}."
                 )
 
-            # Conversion secondes vers millisecondes
+            
             execution_time = (
                 float(match.group(1).replace(",", ".")) * 1000
             )
@@ -174,12 +199,16 @@ for source in implementations:
         print()
 
 
-# Préparation du dossier de sortie
+
 output = Path(args.output)
+
+if not output.is_absolute():
+    output = PROJECT_DIR / output
+
 output.mkdir(parents=True, exist_ok=True)
 
 
-# Graphique comparatif
+
 plt.figure(figsize=(14, 8))
 
 colors = plt.get_cmap("tab20").colors
@@ -194,7 +223,7 @@ for index, (program, measurements) in enumerate(results.items()):
 
     occurrences = list(range(1, len(times) + 1))
 
-    # Mesures individuelles
+    
     plt.plot(
         occurrences,
         times,
@@ -222,7 +251,7 @@ plt.savefig(output / "benchmark_comparatif.png", dpi=200)
 plt.close()
 
 
-# Export CSV
+
 with open(
     output / "results.csv",
     "w",
@@ -243,7 +272,7 @@ with open(
             )
 
 
-# Informations système
+
 gcc = subprocess.getoutput(
     "gcc --version"
 ).splitlines()[0]
@@ -253,13 +282,13 @@ specs = [
     f"Version OS : {platform.version()}",
     f"Architecture : {platform.machine()}",
     f"Processeur : {cpu}",
-    f"Cœurs physiques : {cores}",
-    f"Cœurs logiques : {platform.os.cpu_count() if False else __import__('os').cpu_count()}",
+    f"Cœurs : {os.cpu_count()}",
     f"RAM : {ram}",
     f"Compilateur : {gcc}",
     f"Python : {platform.python_version()}",
     f"Images : {', '.join(image.name for image in images)}",
     f"Itérations par image : {args.iterations}",
+    f"Implémentations : {', '.join(results.keys())}",
     f"Nombre d'implémentations : {len(implementations)}",
     f"Nombre total d'exécutions : {total_runs}",
     "Options de compilation : -Wall -Wextra -O2 -std=c11",
@@ -269,6 +298,8 @@ specs = [
     "\n".join(specs),
     encoding="utf-8"
 )
+
+
 
 print("\n=== Benchmark terminé ===")
 print(f"Implémentations testées : {len(implementations)}")

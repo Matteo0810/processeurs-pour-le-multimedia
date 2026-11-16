@@ -1,23 +1,23 @@
-# Traitement d'images PGM
+# Benchmark d'implémentations C — Traitement d'images PGM
 
 ## Présentation
 
-Ce projet porte sur l'amélioration du contraste d'images au format PGM.
+Ce projet vise à développer et comparer différentes implémentations en C d'un algorithme d'amélioration du contraste sur des images au format PGM (*Portable Gray Map*).
 
-L'objectif est d'implémenter un algorithme de traitement d'image, puis d'évaluer ses performances à travers des mesures de temps d'exécution.
-
-Le projet commence par une implémentation séquentielle, qui servira de référence pour les futures évolutions.
+L'objectif est de mesurer les performances des différentes implémentations, en commençant par une version séquentielle, puis en étudiant les gains apportés par les futures versions parallèles.
 
 ## Structure du projet
 
 ```text
-.
+projet/
 ├── implementations/
-│   └── code_sequentiel.c
+│   ├── code_sequentiel.c
+│   └── code_avx.c
 ├── scripts/
 │   ├── benchmark.py
 │   └── global_bencharmking.py
 ├── img/
+│   └── *.pgm
 ├── results/
 ├── build/
 ├── Makefile
@@ -25,185 +25,186 @@ Le projet commence par une implémentation séquentielle, qui servira de référ
 └── README.md
 ```
 
-| Répertoire / fichier | Description |
+| Dossier / fichier | Description |
 |---|---|
-| `implementations/` | Contient les implémentations en C |
-| `scripts/` | Contient les scripts Python de benchmark |
-| `img/` | Contient les images utilisées pour les tests |
-| `results/` | Contient les résultats des benchmarks |
-| `build/` | Contient les exécutables générés |
-| `Makefile` | Automatise la compilation et l'exécution |
-| `requirements.txt` | Liste les dépendances Python |
+| `implementations/` | Contient les différentes implémentations en C. |
+| `scripts/` | Contient les scripts Python de benchmark. |
+| `img/` | Contient les images PGM utilisées pour les tests. |
+| `results/` | Contient les résultats des benchmarks. |
+| `build/` | Contient les exécutables compilés. |
+| `Makefile` | Automatise la compilation et l'exécution. |
+| `requirements.txt` | Liste les dépendances Python. |
 
-## Installation
-
-### Prérequis
+## Prérequis
 
 - GCC
-- Make
+- GNU Make
 - Python 3
+- Matplotlib
 
-Installer les dépendances Python :
+Installation des dépendances Python :
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Compilation
+## Compilation et exécution
 
-Compiler l'implémentation par défaut :
+### Compiler une implémentation
+
+Par défaut, `make` compile `implementations/code_sequentiel.c`.
 
 ```bash
 make
 ```
 
-Par défaut, le Makefile utilise :
-
-```text
-implementations/code_sequentiel.c
-```
-
-L'exécutable est généré dans :
-
-```text
-build/code_sequentiel
-```
-
-### Choisir un fichier source
-
-Le fichier source peut être modifié directement depuis la commande `make` :
+Pour compiler une autre implémentation :
 
 ```bash
-make SRC=implementations/code_sequentiel.c
+make SRC=implementations/nom_implementation.c
 ```
 
-Le nom de l'exécutable est automatiquement déterminé à partir du nom du fichier source.
+Les exécutables sont générés dans le dossier `build/`.
 
-## Exécution
-
-Pour exécuter le programme sur une image :
+La version AVX traite huit pixels à la fois et nécessite un processeur x86
+avec AVX. Le Makefile ajoute automatiquement l'option `-mavx` pour cette version.
 
 ```bash
-make run IMAGE=img/image1.pgm
+make SRC=implementations/code_avx.c
+make run SRC=implementations/code_avx.c IMAGE=img/image1.pgm
+python3 scripts/global_benchmarking.py -c code_sequentiel code_avx
 ```
 
-Il est également possible de préciser le fichier source :
+### Exécuter une implémentation
 
 ```bash
-make run SRC=implementations/code_sequentiel.c IMAGE=img/image1.pgm
+make run IMAGE=img/image.pgm
 ```
 
-## Benchmark individuel
-
-Le script `scripts/benchmark.py` permet de mesurer les temps d'exécution d'une implémentation sur une ou plusieurs images.
-
-### Utilisation
+Pour exécuter une autre implémentation :
 
 ```bash
-python3 scripts/benchmark.py img/image1.pgm
+make run SRC=implementations/nom_implementation.c IMAGE=img/image.pgm
 ```
 
-Par défaut :
-- 30 exécutions par image ;
-- exécutable : `./build/code_sequentiel` ;
-- dossier de sortie : `results/`.
-
-### Options
-
-| Option | Description | Valeur par défaut |
-|---|---|---|
-| `-n`, `--iterations` | Nombre d'exécutions par image | `30` |
-| `-e`, `--executable` | Chemin vers l'exécutable | `./build/code_sequentiel` |
-| `-o`, `--output` | Dossier de sortie | `results` |
-
-### Exemples
-
-```bash
-# Benchmark sur une image
-python3 scripts/benchmark.py img/image1.pgm
-
-# 50 exécutions sur plusieurs images
-python3 scripts/benchmark.py -n 50 img/image1.pgm img/image2.pgm
-
-# Choisir un dossier de sortie
-python3 scripts/benchmark.py -o results/sequentiel img/image1.pgm
-```
-
-## Benchmark comparatif global
-
-Le script `scripts/global_bencharmking.py` permet de comparer automatiquement toutes les implémentations présentes dans le dossier `implementations/`.
-
-Il détecte les fichiers `.c`, les compile avec le Makefile, puis exécute chaque programme sur les images sélectionnées.
-
-### Fonctionnement
-
-- Détection automatique de toutes les implémentations `.c`.
-- Compilation automatique de chaque implémentation.
-- Utilisation de toutes les images `.pgm` du dossier `img/` par défaut.
-- Possibilité de sélectionner uniquement certaines images.
-- Nombre d'itérations configurable.
-- Une couleur différente pour chaque implémentation.
-- Affichage des mesures individuelles sur un graphique commun.
-- Export des résultats au format CSV et des informations système.
-
-Les temps sont exprimés en millisecondes.
-
-### Utilisation
-
-Lancer le benchmark sur toutes les implémentations et toutes les images :
-
-```bash
-python3 scripts/global_bencharmking.py
-```
-
-Par défaut :
-- 30 exécutions par image et par implémentation ;
-- toutes les images `.pgm` du dossier `img/` ;
-- toutes les implémentations `.c` du dossier `implementations/` ;
-- dossier de sortie : `results/comparaison`.
-
-### Options
-
-| Option | Description | Valeur par défaut |
-|---|---|---|
-| `-n`, `--iterations` | Nombre d'exécutions par image | `30` |
-| `-o`, `--output` | Dossier de sortie | `results/comparaison` |
-| `images` | Images à utiliser | Toutes les images du dossier `img/` |
-
-### Exemples
-
-```bash
-# Toutes les implémentations et toutes les images
-python3 scripts/global_bencharmking.py
-
-# 50 exécutions par image
-python3 scripts/global_bencharmking.py -n 50
-
-# Sélectionner certaines images
-python3 scripts/global_bencharmking.py img/image1.pgm img/image2.pgm
-
-# Personnaliser le nombre d'itérations et le dossier de sortie
-python3 scripts/global_bencharmking.py -n 50 -o results/comparaison_50
-```
-
-### Résultats générés
-
-Le script génère trois fichiers dans le dossier de sortie :
-
-| Fichier | Description |
-|---|---|
-| `benchmark_comparatif.png` | Graphique comparant les temps d'exécution de chaque implémentation |
-| `results.csv` | Ensemble des mesures individuelles, avec l'implémentation et l'image correspondantes |
-| `system.txt` | Informations sur la machine et l'environnement de benchmark |
-
-## Nettoyage
-
-Pour supprimer les exécutables générés et les images temporaires :
+### Nettoyer le projet
 
 ```bash
 make clean
 ```
 
-## Dépendances Python
+Cette commande supprime les exécutables générés ainsi que les images de sortie correspondant au motif `*_new.pgm`.
 
-Les dépendances nécessaires aux benchmarks sont listées dans `requirements.txt`.
+## Benchmarks
+
+Deux scripts permettent de mesurer les performances des implémentations.
+
+### 1. Benchmark individuel
+
+Le script `scripts/benchmark.py` mesure les performances d'une seule implémentation sur une ou plusieurs images.
+
+Par défaut, il utilise l'exécutable `build/code_sequentiel`.
+
+```bash
+python3 scripts/benchmark.py img/image1.pgm img/image2.pgm
+```
+
+Options disponibles :
+
+| Option | Description | Valeur par défaut |
+|---|---|---|
+| `-n`, `--iterations` | Nombre d'exécutions par image | `30` |
+| `-e`, `--executable` | Exécutable à benchmarker | `./build/code_sequentiel` |
+| `-o`, `--output` | Dossier de sortie | `results` |
+
+Exemples :
+
+```bash
+# 30 exécutions par image
+python3 scripts/benchmark.py img/image1.pgm
+
+# 100 exécutions par image
+python3 scripts/benchmark.py -n 100 img/image1.pgm
+
+# Tester une autre implémentation
+python3 scripts/benchmark.py -e ./build/code_sequentiel img/image1.pgm
+
+# Choisir un dossier de sortie
+python3 scripts/benchmark.py -o results/code_sequentiel img/image1.pgm
+```
+
+### 2. Benchmark comparatif global
+
+Le script `scripts/global_bencharmking.py` permet de comparer plusieurs implémentations C sur un ensemble d'images.
+
+Il détecte automatiquement les fichiers `.c` présents dans `implementations/`, les compile individuellement et exécute chaque programme sur les images sélectionnées.
+
+Par défaut :
+- Toutes les implémentations sont testées.
+- Toutes les images `.pgm` du dossier `img/` sont utilisées.
+- Chaque combinaison implémentation/image est exécutée 30 fois.
+
+```bash
+python3 scripts/global_bencharmking.py
+```
+
+Options disponibles :
+
+| Option | Description | Valeur par défaut |
+|---|---|---|
+| `-c`, `--compare` | Implémentations à comparer (sans extension `.c`) | Toutes |
+| `-n`, `--iterations` | Nombre d'exécutions par image | `30` |
+| `-o`, `--output` | Dossier de sortie | `results/comparaison` |
+
+Exemples :
+
+```bash
+# Comparer toutes les implémentations
+python3 scripts/global_bencharmking.py
+
+# Comparer uniquement deux implémentations
+python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp
+
+# Comparer trois implémentations avec 100 itérations
+python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp code_pthread -n 100
+
+# Utiliser une image spécifique
+python3 scripts/global_bencharmking.py img/image1.pgm -c code_sequentiel code_openmp
+
+# Modifier le dossier de sortie
+python3 scripts/global_bencharmking.py -o results/test
+```
+
+### Résultats générés
+
+Le benchmark individuel génère :
+- Un graphique des temps d'exécution.
+- Un fichier CSV contenant les mesures.
+- Un fichier `system.txt` contenant les informations sur l'environnement de test.
+
+Le benchmark comparatif global génère :
+
+```text
+results/
+└── comparaison/
+    ├── benchmark_comparatif.png
+    ├── results.csv
+    └── system.txt
+```
+
+Le graphique comparatif affiche les mesures individuelles de chaque implémentation avec une couleur distincte.
+
+Le fichier CSV contient les colonnes suivantes :
+
+| Colonne | Description |
+|---|---|
+| `implementation` | Nom de l'implémentation testée |
+| `occurrence` | Numéro de l'exécution |
+| `image` | Image utilisée |
+| `time_ms` | Temps d'exécution en millisecondes |
+
+Le fichier `system.txt` conserve les informations matérielles et logicielles de la machine afin de faciliter la reproductibilité des expériences.
+
+## Mesure des performances
+
+Les temps mesurés correspondent au temps consacré au calcul de l'algorithme, exprimé en secondes par le programme C puis converti en millisecondes par les scripts Python.
