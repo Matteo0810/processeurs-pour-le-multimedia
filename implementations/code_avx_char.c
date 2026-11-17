@@ -21,8 +21,8 @@
 /*==============================================================================*/
 
 #define InitClock    struct timespec start, stop
-#define ClockStart   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start)
-#define ClockEnd   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop)
+#define ClockStart   clock_gettime(CLOCK_MONOTONIC, &start)
+#define ClockEnd   clock_gettime(CLOCK_MONOTONIC, &stop)
 #define BILLION  1000000000L
 #define ClockMesure_Sec "Temps de calcul %2.9f s\n",(( stop.tv_sec - start.tv_sec )+ (stop.tv_nsec - start.tv_nsec )/(double)BILLION)
 

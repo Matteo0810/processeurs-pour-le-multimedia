@@ -200,13 +200,25 @@ python3 scripts/global_bencharmking.py
 python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp
 
 # Comparer trois implémentations avec 100 itérations
-python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp code_pthread -n 100
+python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp -n 100
 
 # Utiliser une image spécifique
 python3 scripts/global_bencharmking.py img/image1.pgm -c code_sequentiel code_openmp
 
 # Modifier le dossier de sortie
 python3 scripts/global_bencharmking.py -o results/test
+```
+
+Sur la machine x86 avec AVX, comparez les variantes sur une même image en
+fixant la taille de l’équipe OpenMP. Choisissez une valeur de `n` adaptée
+à la machine et conservez un dossier de résultats par valeur.
+
+```bash
+n=4
+OMP_DYNAMIC=FALSE OMP_NUM_THREADS="$n" \
+  python3 scripts/global_benchmarking.py img/stavrovouni.pgm -n 30 \
+  -c code_sequentiel code_avx_int code_avx_short code_avx_char code_openmp \
+  -o "results/avx_openmp_${n}_threads"
 ```
 
 ### Résultats générés
@@ -244,4 +256,6 @@ Le fichier `system.txt` conserve les informations matérielles et logicielles de
 
 ## Mesure des performances
 
-Les temps mesurés correspondent au temps consacré au calcul de l'algorithme, exprimé en secondes par le programme C puis converti en millisecondes par les scripts Python.
+Les versions mesurent la durée écoulée du calcul, hors lecture et écriture
+du PGM. OpenMP inclut le lancement et la synchronisation de l’équipe.
+Les scripts convertissent les secondes affichées en millisecondes.
