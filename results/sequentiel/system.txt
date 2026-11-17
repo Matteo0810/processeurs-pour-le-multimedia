@@ -1,0 +1,15 @@
+OS : Darwin 25.6.0
+Version OS : Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041
+Architecture : arm64
+Processeur : Apple M4 Pro
+Cœurs physiques : 12
+Cœurs logiques : 12
+RAM : 24.00 Go
+Compilateur : Apple clang version 21.0.0 (clang-2100.1.1.101)
+Python : 3.11.9
+Exécutable : ./build/code_sequentiel
+Images : img/image1.pgm
+Itérations par image : 30
+Nombre total d'exécutions : 30
+Temps moyen : 0.010 ms
+Options de compilation : -Wall -Wextra -O2 -std=c11

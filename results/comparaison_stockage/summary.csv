@@ -1,0 +1,5 @@
+implementation,executions,mean_time_ms
+code_avx,100,0.049220
+code_avx_char,100,0.038240
+code_avx_int,100,0.054400
+code_sequentiel,100,0.030770
