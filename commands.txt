@@ -4,7 +4,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 
-# Machine x86 avec AVX. Toutes les paires, OpenMP testé à 2, 4 et 8 threads.
+# Machine x86. Les trois AVX face au séquentiel, puis face à OpenMP à 2, 4 et 8 threads.
 bash bench.sh x86 2 4 8
 
 # Mac. OpenMP uniquement, à 2, 4 et 8 threads.

@@ -58,8 +58,8 @@ if [[ "$machine" == mac ]]; then
         SRC=implementations/code_openmp.c
     compiler=gcc-12
 else
-    baselines=(code_sequentiel code_avx_int code_avx_short code_avx_char)
-    for implementation in "${baselines[@]}" code_openmp; do
+    avx=(code_avx_int code_avx_short code_avx_char)
+    for implementation in code_sequentiel "${avx[@]}" code_openmp; do
         make -B CC=gcc SRC="implementations/$implementation.c"
     done
     compiler=gcc
@@ -88,13 +88,7 @@ for image in "${images[@]}"; do
     name=${image%.pgm}
 
     if [[ "$machine" == x86 ]]; then
-        for ((i=0; i<${#baselines[@]}; i++)); do
-            for ((j=i+1; j<${#baselines[@]}; j++)); do
-                first=${baselines[i]}
-                second=${baselines[j]}
-                benchmark "paires/sans_openmp/$name/${first}_vs_${second}" "$first" "$second"
-            done
-        done
+        benchmark "avx_vs_sequentiel/$name" "${avx[@]}" code_sequentiel
     fi
 
     for threads in "$@"; do
@@ -102,10 +96,7 @@ for image in "${images[@]}"; do
         if [[ "$machine" == mac ]]; then
             benchmark "openmp/$name/${threads}_threads" code_openmp
         else
-            for implementation in "${baselines[@]}"; do
-                benchmark "paires/${threads}_threads/$name/${implementation}_vs_code_openmp" \
-                    "$implementation" code_openmp
-            done
+            benchmark "avx_vs_openmp/$name/${threads}_threads" "${avx[@]}" code_openmp
         fi
     done
 done
