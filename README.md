@@ -12,6 +12,7 @@ L'objectif est de mesurer les performances des différentes implémentations, en
 projet/
 ├── implementations/
 │   ├── code_sequentiel.c
+│   ├── code_openmp.c
 │   ├── code_avx_short.c
 │   ├── code_avx_char.c
 │   └── code_avx_int.c
@@ -81,6 +82,28 @@ et 255. Elle écrit une image étalée sur une échelle de 0 à 255.
 make SRC=implementations/code_avx_short.c
 make run SRC=implementations/code_avx_short.c IMAGE=img/image1.pgm
 python3 scripts/global_benchmarking.py img/image1.pgm -c code_sequentiel code_avx_int code_avx_short code_avx_char
+```
+
+### Version OpenMP
+
+Le Makefile ajoute `-fopenmp` pour cette version. Les deux boucles se
+répartissent les lignes de l’image entre les threads. La première combine
+les extrema locaux avec `reduction`, puis la seconde applique l’étalement.
+`omp_get_wtime()` mesure la durée écoulée du traitement, hors lecture et
+écriture du fichier PGM.
+
+```bash
+OMP_NUM_THREADS=4 make run SRC=implementations/code_openmp.c IMAGE=img/image1.pgm
+```
+
+Sur macOS, voici la commande vérifiée avec GCC 12 et le SDK des outils
+en ligne de commande d’Apple.
+
+```bash
+sdk="$(xcrun --sdk macosx --show-sdk-path)"
+OMP_NUM_THREADS=4 make run CC=gcc-12 \
+  CPPFLAGS="-D_POSIX_C_SOURCE=200809L -isysroot $sdk -isystem $sdk/usr/include" \
+  SRC=implementations/code_openmp.c IMAGE=img/image1.pgm
 ```
 
 ### Exécuter une implémentation

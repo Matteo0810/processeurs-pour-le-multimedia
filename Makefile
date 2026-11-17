@@ -9,13 +9,17 @@ ifneq ($(filter code_avx_short.c code_avx_char.c code_avx_int.c,$(notdir $(SRC))
 SIMD_FLAGS = -mavx
 endif
 
+ifeq ($(notdir $(SRC)),code_openmp.c)
+OPENMP_FLAGS = -fopenmp
+endif
+
 .PHONY: all run clean
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
 	mkdir -p build
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(SIMD_FLAGS) -o $(TARGET) $(SRC)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SIMD_FLAGS) $(OPENMP_FLAGS) -o $(TARGET) $(SRC)
 
 run: $(TARGET)
 	@if [ -z "$(IMAGE)" ]; then \
