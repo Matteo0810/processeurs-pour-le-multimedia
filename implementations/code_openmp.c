@@ -130,25 +130,26 @@ void write_pgm(const char *filename, ImagePGM img) {
 void etalement_lineaire(ImagePGM in, ImagePGM out) {
     int min = MAX_VALEUR, max = 0;
 
-    // Chaque thread recherche ses extrema locaux, puis OpenMP les combine.
-    #pragma omp parallel for default(none) shared(in) reduction(min:min) reduction(max:max) schedule(static)
-    for (int i = 0; i < in.height; i++)
-        for (int j = 0; j < in.width; j++) {
-            min = MIN(min, in.data[i][j]);
-            max = MAX(max, in.data[i][j]);
+    #pragma omp parallel default(none) shared(in, out, min, max)
+    {
+        #pragma omp for reduction(min:min) reduction(max:max) schedule(static)
+        for (int i = 0; i < in.height; i++)
+            for (int j = 0; j < in.width; j++) {
+                min = MIN(min, in.data[i][j]);
+                max = MAX(max, in.data[i][j]);
+            }
+
+        // La barrière de fin de boucle rend les extrema globaux disponibles.
+        // Si max == min, la sortie allouée par calloc reste noire.
+        if (max != min) {
+            float facteur = (float)MAX_VALEUR / (float)(max - min);
+
+            #pragma omp for schedule(static) nowait
+            for (int i = 0; i < in.height; i++)
+                for (int j = 0; j < in.width; j++)
+                    out.data[i][j] = (int)((in.data[i][j] - min) * facteur);
         }
-
-    // La sortie allouée par calloc reste noire si max == min.
-    if (max == min)
-        return;
-
-    float facteur = (float)(MAX_VALEUR) / (float)(max - min);
-
-    // Les extrema globaux sont disponibles et chaque ligne de sortie est indépendante.
-    #pragma omp parallel for default(none) shared(in, out, min, facteur) schedule(static)
-    for (int i = 0; i < in.height; i++)
-        for (int j = 0; j < in.width; j++)
-            out.data[i][j] = (int)((in.data[i][j] - min) * facteur);
+    }
 }
 
 /*==============================================================================*/
@@ -159,6 +160,11 @@ int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "Usage : %s image.pgm\n", argv[0]);
         return EXIT_FAILURE;
+    }
+
+    if (getenv("OMP_NUM_THREADS") == NULL) {
+        omp_set_dynamic(0);
+        omp_set_num_threads(omp_get_num_procs());
     }
 
     char srcFile[MAX_CHAINE];

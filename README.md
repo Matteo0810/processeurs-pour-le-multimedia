@@ -86,14 +86,17 @@ python3 scripts/global_benchmarking.py img/image1.pgm -c code_sequentiel code_av
 
 ### Version OpenMP
 
-Le Makefile ajoute `-fopenmp` pour cette version. Les deux boucles se
-répartissent les lignes de l’image entre les threads. La première combine
-les extrema locaux avec `reduction`, puis la seconde applique l’étalement.
+Le Makefile ajoute `-fopenmp` pour cette version. Une même équipe répartit
+les lignes de l’image sur les deux passes. La première combine les extrema
+locaux avec `reduction`, puis la seconde applique l’étalement.
+Par défaut, l’équipe utilise un thread par processeur logique disponible,
+selon `omp_get_num_procs()`. On peut fixer une autre taille pour le benchmark
+avec `OMP_NUM_THREADS`.
 `omp_get_wtime()` mesure la durée écoulée du traitement, hors lecture et
 écriture du fichier PGM.
 
 ```bash
-OMP_NUM_THREADS=4 make run SRC=implementations/code_openmp.c IMAGE=img/image1.pgm
+make run SRC=implementations/code_openmp.c IMAGE=img/image1.pgm
 ```
 
 Sur macOS, voici la commande vérifiée avec GCC 12 et le SDK des outils
@@ -101,7 +104,7 @@ en ligne de commande d’Apple.
 
 ```bash
 sdk="$(xcrun --sdk macosx --show-sdk-path)"
-OMP_NUM_THREADS=4 make run CC=gcc-12 \
+make run CC=gcc-12 \
   CPPFLAGS="-D_POSIX_C_SOURCE=200809L -isysroot $sdk -isystem $sdk/usr/include" \
   SRC=implementations/code_openmp.c IMAGE=img/image1.pgm
 ```
