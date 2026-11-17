@@ -18,7 +18,7 @@ projet/
 │   └── code_avx_int.c
 ├── scripts/
 │   ├── benchmark.py
-│   └── global_bencharmking.py
+│   └── global_benchmarking.py
 ├── img/
 │   └── *.pgm
 ├── results/
@@ -131,6 +131,33 @@ Cette commande supprime les exécutables générés ainsi que les images de sort
 
 ## Benchmarks
 
+### Lancer la suite avec `bench.sh`
+
+Depuis le dossier `projet`, préparez l’environnement Python une première fois.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+Sur une machine x86 avec AVX, le script compare les trois variantes AVX
+au séquentiel, puis à OpenMP pour chaque nombre de threads demandé.
+Sur Mac, il mesure uniquement OpenMP avec GCC 12.
+
+```bash
+bash bench.sh x86 2 4 8
+bash bench.sh mac 2 4 8
+```
+
+Les nombres après `x86` ou `mac` sont les tailles d’équipe OpenMP testées
+séparément. Le script mesure les quatre images d’origine et effectue
+30 répétitions par image et par version. Pour un essai rapide à 4 threads,
+lancez par exemple `ITERATIONS=2 bash bench.sh mac 4`.
+
+Pour le compte rendu, conservez les résultats dans `results/benchmark_x86`
+et `results/benchmark_mac`.
+
 Deux scripts permettent de mesurer les performances des implémentations.
 
 ### 1. Benchmark individuel
@@ -169,7 +196,7 @@ python3 scripts/benchmark.py -o results/code_sequentiel img/image1.pgm
 
 ### 2. Benchmark comparatif global
 
-Le script `scripts/global_bencharmking.py` permet de comparer plusieurs implémentations C sur un ensemble d'images.
+Le script `scripts/global_benchmarking.py` permet de comparer plusieurs implémentations C sur un ensemble d'images.
 
 Il détecte automatiquement les fichiers `.c` présents dans `implementations/`, les compile individuellement et exécute chaque programme sur les images sélectionnées.
 
@@ -179,7 +206,7 @@ Par défaut :
 - Chaque combinaison implémentation/image est exécutée 30 fois.
 
 ```bash
-python3 scripts/global_bencharmking.py
+python3 scripts/global_benchmarking.py
 ```
 
 Options disponibles :
@@ -194,19 +221,19 @@ Exemples :
 
 ```bash
 # Comparer toutes les implémentations
-python3 scripts/global_bencharmking.py
+python3 scripts/global_benchmarking.py
 
 # Comparer uniquement deux implémentations
-python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp
+python3 scripts/global_benchmarking.py -c code_sequentiel code_openmp
 
 # Comparer trois implémentations avec 100 itérations
-python3 scripts/global_bencharmking.py -c code_sequentiel code_openmp -n 100
+python3 scripts/global_benchmarking.py -c code_sequentiel code_openmp -n 100
 
 # Utiliser une image spécifique
-python3 scripts/global_bencharmking.py img/image1.pgm -c code_sequentiel code_openmp
+python3 scripts/global_benchmarking.py img/image1.pgm -c code_sequentiel code_openmp
 
 # Modifier le dossier de sortie
-python3 scripts/global_bencharmking.py -o results/test
+python3 scripts/global_benchmarking.py -o results/test
 ```
 
 Sur la machine x86 avec AVX, comparez les variantes sur une même image en
