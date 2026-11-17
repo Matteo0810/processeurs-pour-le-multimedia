@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -184,33 +185,42 @@ void write_pgm(const char *filename, ImagePGM img) {
 /*==============================================================================*/
 /* Etalement du contraste                                                       */
 /*==============================================================================*/
-static inline __m256 charger_pixels(const uint8_t *pixels) {
-    __m128i zeros = _mm_setzero_si128();
-    __m128i octets = _mm_loadl_epi64((const __m128i *)pixels);
-    __m128i valeurs = _mm_unpacklo_epi8(octets, zeros);
+// Lire quatre octets sans exiger d'alignement, puis élargir chaque pixel à 32 bits.
+static inline __m128i lire_quatre_pixels(const uint8_t *pixels) {
+    int octets;
+    memcpy(&octets, pixels, sizeof(octets));
+    return _mm_cvtepu8_epi32(_mm_cvtsi32_si128(octets));
+}
 
-    // Élargir les deux moitiés à 32 bits sans extension de signe.
-    __m128 bas = _mm_cvtepi32_ps(_mm_unpacklo_epi16(valeurs, zeros));
-    __m128 haut = _mm_cvtepi32_ps(_mm_unpackhi_epi16(valeurs, zeros));
-    return _mm256_set_m128(haut, bas);
+// Étaler huit pixels et ramener les résultats à huit entiers de 16 bits.
+static inline __m128i etaler_huit_pixels(const uint8_t *pixels, __m256 minimum, __m256 facteurs) {
+    __m128i bas = lire_quatre_pixels(pixels);
+    __m128i haut = lire_quatre_pixels(pixels + 4);
+    __m256 valeurs = _mm256_cvtepi32_ps(_mm256_set_m128i(haut, bas));
+
+    __m256 ecarts = _mm256_sub_ps(valeurs, minimum);
+    __m256 etales = _mm256_mul_ps(ecarts, facteurs);
+    __m256i entiers = _mm256_cvttps_epi32(etales); // Tronquer comme le cast en C.
+    __m128i moities[2];
+    _mm256_storeu_si256((__m256i *)moities, entiers);
+    return _mm_packs_epi32(moities[0], moities[1]);
 }
 
 void etalement_lineaire(ImagePGM in, ImagePGM out) {
     __m128i min_octets = _mm_set1_epi32(-1); // 0xFF dans chaque octet.
     __m128i max_octets = _mm_setzero_si128();
     int min = MAX_VALEUR, max = 0;
-    const int fin_minmax = in.width - in.width % 16;
-    const int fin_avx = in.width - in.width % 8;
+    const int fin_blocs = in.width - in.width % 16;
 
     for (int i = 0; i < in.height; i++) {
         // Comparer directement 16 pixels non signés, sans conversion en flottants.
-        for (int j = 0; j < fin_minmax; j += 16) {
+        for (int j = 0; j < fin_blocs; j += 16) {
             __m128i pixels = _mm_loadu_si128((const __m128i *)&in.data[i][j]);
             min_octets = _mm_min_epu8(min_octets, pixels);
             max_octets = _mm_max_epu8(max_octets, pixels);
         }
 
-        for (int j = fin_minmax; j < in.width; j++) {
+        for (int j = fin_blocs; j < in.width; j++) {
             min = MIN(min, in.data[i][j]);
             max = MAX(max, in.data[i][j]);
         }
@@ -233,20 +243,24 @@ void etalement_lineaire(ImagePGM in, ImagePGM out) {
     __m256 facteurs = _mm256_set1_ps(facteur);
 
     for (int i = 0; i < in.height; i++) {
-        for (int j = 0; j < fin_avx; j += 8) {
-            __m256 pixels = charger_pixels(&in.data[i][j]);
-            __m256 etales = _mm256_mul_ps(_mm256_sub_ps(pixels, minimum), facteurs);
-            // Tronquer vers zéro, comme le cast (int) de la version séquentielle.
-            __m256i entiers = _mm256_cvttps_epi32(etales);
-            // Les résultats sont dans [0, 255] et tiennent dans un entier 16 bits signé.
-            __m128i moities[2];
-            _mm256_storeu_si256((__m256i *)moities, entiers);
-            __m128i pixels_16 = _mm_packs_epi32(moities[0], moities[1]);
-            __m128i pixels_8 = _mm_packus_epi16(pixels_16, _mm_setzero_si128());
-            _mm_storel_epi64((__m128i *)&out.data[i][j], pixels_8);
+        int j = 0;
+        for (; j < fin_blocs; j += 16) {
+            __m128i bas = etaler_huit_pixels(&in.data[i][j], minimum, facteurs);
+            __m128i haut = etaler_huit_pixels(&in.data[i][j + 8], minimum, facteurs);
+            // Rassembler les deux groupes en 16 octets et les écrire ensemble.
+            __m128i octets = _mm_packus_epi16(bas, haut);
+            _mm_storeu_si128((__m128i *)&out.data[i][j], octets);
         }
 
-        for (int j = fin_avx; j < in.width; j++)
+        // Traiter encore huit pixels s'il reste un bloc complet.
+        if (in.width - j >= 8) {
+            __m128i valeurs = etaler_huit_pixels(&in.data[i][j], minimum, facteurs);
+            __m128i octets = _mm_packus_epi16(valeurs, _mm_setzero_si128());
+            _mm_storel_epi64((__m128i *)&out.data[i][j], octets);
+            j += 8;
+        }
+
+        for (; j < in.width; j++)
             out.data[i][j] = (int)((in.data[i][j] - min) * facteur);
     }
 }
