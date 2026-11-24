@@ -1,0 +1,7 @@
+\section{Introduction}
+
+Ce projet compare plusieurs façons d'accélérer un traitement d'amélioration du contraste sur des images en niveaux de gris au format PGM. L'algorithme repère les intensités minimale et maximale de l'image, puis étale les niveaux de gris pour exploiter la plage de sortie. Ce traitement se prête au parallélisme, car une fois les deux extrema connus, chaque pixel peut être recalculé indépendamment.
+
+L'objectif est de mesurer dans quelle mesure le parallélisme réduit le temps de traitement par rapport à une version séquentielle en C. Nous comparerons deux approches. OpenMP répartit les lignes de l'image entre plusieurs threads du processeur, tandis qu'AVX permet de traiter plusieurs pixels par instruction. On retrouve ces principes dans les réseaux de neurones, où les convolutions et les produits matriciels comportent de nombreuses opérations qui peuvent être effectuées simultanément.
+
+Tous les essais de la comparaison principale seront réalisés sur une seule et même machine x86 compatible AVX, avec les mêmes images d'entrée. Nous testerons la version séquentielle, OpenMP avec différents nombres de threads, trois variantes AVX qui stockent les pixels sur 8, 16 ou 32 bits. Les mesures seront répétées et excluront la lecture et l'écriture des fichiers PGM. Un essai complémentaire, limité à OpenMP, sera réalisé sur un Mac sous macOS disposant d'un processeur plus puissant. Nous reprendrons les mêmes images et les mêmes nombres de threads pour observer l'écart entre les deux configurations.

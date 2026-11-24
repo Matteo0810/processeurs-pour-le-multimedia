@@ -1,0 +1,30 @@
+\section{Protocole expérimental}
+
+\subsection{Machines et environnement logiciel}
+
+La comparaison principale sera réalisée sur un même poste x86 de l'ENSSAT, dans la salle 101D. Les versions séquentielle, OpenMP et AVX seront exécutées sur ce poste pour comparer les approches à matériel constant. Le modèle du processeur, le nombre de cœurs, le système d'exploitation et les versions et options des compilateurs seront relevés lors des essais.
+
+Une série complémentaire sera consacrée à OpenMP sur un Mac sous macOS. Elle reprendra les mêmes images et les mêmes nombres de threads afin de comparer les temps de traitement entre les deux machines. L'écart mesuré tiendra compte de l'ensemble de la configuration, dont le processeur et l'environnement logiciel.
+
+\subsection{Images, paramètres et mesures}
+
+Les quatre images PGM fournies par le professeur se trouvent dans le dossier \texttt{img/}. Leurs dimensions couvrent plusieurs tailles, de 48\,841 pixels à un peu plus de 15 millions. Cette variation permet d'observer comment le temps de traitement et le gain du parallélisme évoluent avec la quantité de pixels à traiter.
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Image & Dimensions (pixels) \\
+\midrule
+\texttt{image1.pgm} & \(221 \times 221\) \\
+\texttt{MontagneFoncee.pgm} & \(640 \times 480\) \\
+\texttt{Ordi-1970.pgm} & \(1\,316 \times 1\,344\) \\
+\texttt{stavrovouni.pgm} & \(5\,177 \times 2\,912\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pour chaque image d'entrée, l'objectif est d'obtenir la même image de sortie avec toutes les versions. Les dimensions et les intensités seront comparées pixel par pixel à la sortie séquentielle. Tout écart éventuel sera relevé avant d'interpréter les temps.
+
+Sur le poste de la salle 101D, les variantes AVX \texttt{int}, \texttt{short} et \texttt{char} seront comparées entre elles, puis chacune à la version séquentielle et à OpenMP pour chaque nombre de threads testé. La version OpenMP sera aussi comparée directement au séquentiel pour chacun de ces réglages.
+
+Le protocole prévoit 100 exécutions par image et par configuration. Pour OpenMP, chaque nombre de threads fera l'objet d'une série distincte. On mesurera le temps écoulé du traitement en millisecondes, hors lecture et écriture des fichiers PGM. Les résultats seront présentés par image, avec le temps moyen et l'accélération calculée en divisant le temps moyen du séquentiel par celui de la version testée.

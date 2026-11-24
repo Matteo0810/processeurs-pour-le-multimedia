@@ -1,0 +1,22 @@
+\section{Algorithme et implémentations}
+
+Le rehaussement de contraste repose sur un étalement linéaire des niveaux de gris. Une première passe détermine les intensités minimale et maximale observées dans l'image, notées \(p_{\min}\) et \(p_{\max}\). Lorsque ces deux valeurs diffèrent, une seconde passe calcule la nouvelle intensité de chaque pixel \(p\) par la formule
+\[
+    p_{\mathrm{sortie}} =
+    \left\lfloor (p - p_{\min}) \cdot \frac{255}{p_{\max} - p_{\min}} \right\rfloor .
+\]
+Le facteur est calculé en virgule flottante et le résultat est tronqué à l'entier. Une image uniforme donne une sortie noire. Les deux passes représentent un travail total proportionnel au nombre de pixels.
+
+\subsection{Version séquentielle de référence}
+
+La version séquentielle parcourt le tableau ligne par ligne. Elle met à jour les deux extrema à chaque lecture, calcule le facteur d'étalement une seule fois, puis remplit l'image de sortie lors du second parcours. Les pixels sont stockés sur 16 bits. Son temps de traitement sert de référence pour mesurer l'accélération des autres versions.
+
+\subsection{Parallélisation avec OpenMP}
+
+Une même équipe de threads effectue les deux passes. Les lignes sont réparties statiquement entre les threads. Lors de la première passe, chaque thread calcule ses extrema locaux, puis les réductions OpenMP combinent ces résultats. La barrière implicite à la fin de la boucle garantit que les extrema globaux sont disponibles avant la seconde passe. Chaque thread écrit alors les pixels des lignes qui lui sont attribuées. Le nombre de threads peut être réglé avec \verb|OMP_NUM_THREADS|~\cite{openmp}.
+
+\subsection{Vectorisation AVX et stockage des pixels}
+
+Les variantes AVX \texttt{int}, \texttt{short} et \texttt{char} stockent les pixels sur 32, 16 et 8 bits, respectivement. Toutes trois appliquent l'étalement à huit pixels par opération vectorielle, dans des registres AVX de 256 bits contenant huit flottants~\cite{intel-intrinsics}. Les pixels restants en fin de ligne sont traités individuellement lorsque leur nombre est inférieur à huit.
+
+La recherche des extrema dépend du format de stockage. La variante 32 bits convertit les entiers en flottants et les compare par groupes de huit. Les variantes 16 et 8 bits utilisent des comparaisons entières par groupes de huit et seize, respectivement. Les extrema conservés dans chaque position des vecteurs sont ensuite combinés avec ceux trouvés en fin de ligne. Le stockage compact réduit le volume de données à lire et à écrire, avec des conversions supplémentaires pour l'étalement et le rangement des résultats.
